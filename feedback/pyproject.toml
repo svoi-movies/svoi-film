@@ -1,0 +1,35 @@
+[project]
+name = "template"
+version = "0.1.0"
+description = "Template microservice"
+readme = "README.md"
+authors = [{ name = "Artem Burenin", email = "burenin@mindbox.cloud" }]
+requires-python = ">=3.13"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "commons",
+    "fastapi>=0.124.2",
+    "faststream>=0.6.4",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "sqlalchemy[asyncio]>=2.0.45",
+    "uvicorn>=0.38.0",
+]
+
+[project.scripts]
+template = "template:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.0",
+ "ruff>=0.14.8",
+ "sqlalchemy-stubs>=0.4",
+]
+pytest = ["pytest-bdd>=8.1.0"]
+
+[tool.uv.sources]
+commons = { path = "../commons", editable = true }
