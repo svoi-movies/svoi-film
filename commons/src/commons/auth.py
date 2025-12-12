@@ -1,6 +1,6 @@
 from enum import Enum
 from http import HTTPStatus
-from typing import Annotated, Callable, cast
+from typing import Annotated, Callable, Protocol, cast
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
@@ -9,21 +9,32 @@ from jose import ExpiredSignatureError, JWSError, jws
 from pydantic import BaseModel
 
 
-class Permission(Enum): ...
+class Role(Enum):
+    MODERATOR = "moderator"
+    VIEWER = "viewer"
+    CONTENT_OWNER = "content_owner"
+    ADMIN = "admin"
 
 
 class UserClaims(BaseModel):
     user_id: UUID
     first_name: str
     last_name: str
-    permissions: set[Permission]
+    role: Role
+
+
+class AuthorizationFactory(Protocol):
+
+    def __call__(
+        self, allowed_roles: list[Role] | None = None
+    ) -> Callable[[], UserClaims]: ...
 
 
 def create_authorization_guard(
     token_url: str,
     verification_key: str,
     algorithms: list[str],
-) -> Callable[[set[Permission]], Callable[[], UserClaims]]:
+) -> AuthorizationFactory:
     bearer = OAuth2PasswordBearer(tokenUrl=token_url)
 
     def get_current_user(
@@ -38,9 +49,9 @@ def create_authorization_guard(
             )
 
             return UserClaims.model_validate_json(payload)
-        except JWSError:
+        except JWSError as e:
             raise HTTPException(
-                detail="Invalid access token",
+                detail=f"Invalid access token: {e}",
                 status_code=HTTPStatus.UNAUTHORIZED,
             )
         except ExpiredSignatureError:
@@ -49,13 +60,14 @@ def create_authorization_guard(
                 status_code=HTTPStatus.UNAUTHORIZED,
             )
 
-    def authorize(permissions: set[Permission]) -> Callable[[], UserClaims]:
+    def authorize(allowed_roles: list[Role]) -> Callable[[], UserClaims]:
         def permissions_guard(
             current_user: Annotated[UserClaims, Depends(get_current_user)],
         ) -> UserClaims:
-            if permissions - current_user.permissions:
+            print(allowed_roles, current_user)
+            if allowed_roles and current_user.role not in allowed_roles:
                 raise HTTPException(
-                    detail="User does not have enough permissions",
+                    detail=f"User does not have enough permissions: must be one of {[r.value for r in allowed_roles]}",
                     status_code=HTTPStatus.FORBIDDEN,
                 )
 
