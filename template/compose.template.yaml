@@ -1,0 +1,22 @@
+services:
+  # TODO: Rename to service name
+  template:
+    image: local/template:latest
+    restart: unless-stopped
+    networks:
+      - microservices
+      - rabbitmq
+
+  template-outbox:
+    image: local/template:latest
+    restart: unless-stopped
+    command: ["uv", "run", "python", "-m", "commons.outbox"]
+    networks:
+      - rabbitmq
+
+  template-postgres:
+    image: postgres:17.4
+
+networks:
+  microservices:
+    external: true

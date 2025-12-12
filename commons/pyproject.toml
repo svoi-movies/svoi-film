@@ -1,0 +1,21 @@
+[project]
+name = "commons"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Artem Burenin", email = "burenin@mindbox.cloud" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.124.2",
+    "pydantic>=2.12.5",
+    "python-jose[cryptography]>=3.5.0",
+]
+
+[project.scripts]
+commons = "commons:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
