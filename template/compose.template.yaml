@@ -7,15 +7,10 @@ services:
       - microservices
       - rabbitmq
 
-  template-outbox:
-    image: local/template:latest
-    restart: unless-stopped
-    command: ["uv", "run", "python", "-m", "commons.outbox"]
-    networks:
-      - rabbitmq
-
   template-postgres:
     image: postgres:17.4
+    environment:
+      - name=value
 
 networks:
   microservices:
