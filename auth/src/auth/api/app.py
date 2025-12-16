@@ -1,0 +1,67 @@
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+import sqlalchemy as sa
+from dishka import AsyncContainer
+from dishka.integrations.fastapi import setup_dishka
+from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from auth.config import Config
+from auth.container import create_container
+from auth.persistence.schema import wire_mappers
+
+instrumentator = Instrumentator(
+    should_group_status_codes=False,
+    should_ignore_untemplated=True,
+    should_respect_env_var=False,
+    should_instrument_requests_inprogress=True,
+    excluded_handlers=["/metrics"],
+    inprogress_name="inprogress",
+    inprogress_labels=True,
+)
+
+
+def create_base_app() -> FastAPI:
+    from .routes import router
+
+    app = FastAPI(lifespan=lifespan)
+    app.include_router(router)
+    instrumentator.instrument(app).expose(app)
+
+    return app
+
+
+def create_app() -> FastAPI:
+    app = create_base_app()
+
+    container = create_container()
+    setup_dishka(container, app)
+    wire_mappers()
+
+    return app
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    """
+    Обычно в лайфспане происходит настройка всего подряд,
+    но у нас для настройки есть di-контейнер dishka.
+
+    Так что тут я просто проверяю, что прочитался конфиг
+    и есть доступ в базу.
+    """
+    container: AsyncContainer = app.state.dishka_container
+    _ = await container.get(Config)
+    await check_db_connection(container)
+    yield
+
+
+async def check_db_connection(container: AsyncContainer) -> None:
+    """
+    Просто берем соединение и пытаемся сделать select 1
+    """
+    engine = await container.get(AsyncEngine)
+    async with engine.connect() as conn:
+        await conn.scalar(sa.select(1))
