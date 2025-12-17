@@ -20,6 +20,7 @@ dependencies = [
     "prometheus-fastapi-instrumentator>=7.1.0",
     "alembic>=1.17.2",
     "httpx>=0.28.1",
+    "aio-pika>=9.5.8",
 ]
 
 [build-system]

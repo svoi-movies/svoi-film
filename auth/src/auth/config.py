@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from commons.auth.guards import AuthConfig
 from commons.unit_of_work.dishka import DbConfig
-from pydantic import BaseModel, SecretStr
+from pydantic import AmqpDsn, BaseModel, SecretStr
 from pydantic_settings import (
     BaseSettings,
     DotEnvSettingsSource,
@@ -20,10 +20,15 @@ class JwtConfig(BaseModel):
     refresh_token_ttl: timedelta = timedelta(days=7)
 
 
+class RabbitConfig(BaseModel):
+    dsn: AmqpDsn
+
+
 class Config(BaseSettings):
     jwt: JwtConfig
     db: DbConfig
     auth: AuthConfig
+    rabbit: RabbitConfig
 
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",

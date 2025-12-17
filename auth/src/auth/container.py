@@ -1,12 +1,15 @@
+import aio_pika
+from aio_pika.abc import AbstractConnection
 from commons.auth.guards import AuthConfig, TokenService
 from commons.auth.service import JwtTokenService
 from commons.unit_of_work.dishka import DbConfig, SqlAlchemyProvider
 from commons.utils.common_providers import DateTimeProvider
 from commons.utils.dishka import CommonProvidersProvider
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
+from faststream.rabbit import RabbitBroker
 
 from auth.config import Config
-from auth.entities.user import PasswordHasher
+from auth.domain.user import PasswordHasher
 from auth.persistence.uow import UserUnitOfWork
 from auth.services.jwt_issuer import JoseJwtIssuer
 from auth.services.password_hasher import BcryptPasswordHasher
@@ -38,6 +41,10 @@ class AppProvider(Provider):
     async def auth_config(self, config: Config) -> AuthConfig:
         return config.auth
 
+    @provide(scope=Scope.APP)
+    async def rabbit_connection(self, config: Config) -> AbstractConnection:
+        return await aio_pika.connect_robust(config.rabbit.dsn.encoded_string())
+
     @provide(scope=Scope.REQUEST)
     def jwt_issuer(
         self, config: Config, dt_provider: DateTimeProvider
@@ -59,6 +66,14 @@ class AppProvider(Provider):
     # source = provides
     commands = provide(UserCommands)
     queries = provide(UserQueries)
+
+    @provide(scope=Scope.APP)
+    def rabbit(self, config: Config) -> RabbitBroker:
+        from auth.worker.handlers import broker
+
+        main_broker = RabbitBroker(config.rabbit.dsn.encoded_string())
+        main_broker.include_router(broker)
+        return main_broker
 
 
 def create_container() -> AsyncContainer:

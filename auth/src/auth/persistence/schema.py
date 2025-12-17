@@ -1,8 +1,9 @@
 import sqlalchemy as sa
+from commons.outbox.sqlalchemy import create_outbox_table, map_outbox_table
 from sqlalchemy.orm import registry, relationship
 
-from auth.entities.user import Session, User
-from auth.entities.value_objects import Email
+from auth.domain.user import Session, User
+from auth.domain.value_objects import Email
 
 """
 Тут я положил вообще все, что связано маппингом алхимии.
@@ -13,6 +14,8 @@ from auth.entities.value_objects import Email
 В mapper_registry лежит вся инфа про то, какие таблички есть и как их смаппить в объекты
 """
 mapper_registry = registry()
+
+outbox_table = create_outbox_table(mapper_registry.metadata, table_name="outbox")
 
 
 class EmailType(sa.TypeDecorator[Email]):
@@ -99,3 +102,5 @@ def wire_mappers() -> None:
             ),
         },
     )
+
+    map_outbox_table(mapper_registry, outbox_table)

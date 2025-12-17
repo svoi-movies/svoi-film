@@ -4,7 +4,7 @@ from uuid import UUID
 from commons.utils.common_providers import DateTimeProvider
 from jose import jws
 
-from auth.entities.user import UserRole
+from auth.domain.user import UserRole
 from auth.use_cases.interfaces import (
     JwtIssuer,
     Token,

@@ -1,8 +1,8 @@
 from commons.ddd.errors import DomainError
 from commons.utils.common_providers import DateTimeProvider, UUIDProvider
 
-from auth.entities.user import PasswordHasher, User
-from auth.entities.value_objects import Email, UserPassword
+from auth.domain.user import PasswordHasher, User
+from auth.domain.value_objects import Email, UserPassword
 
 from .interfaces import JwtIssuer, Token, UserUnitOfWork
 

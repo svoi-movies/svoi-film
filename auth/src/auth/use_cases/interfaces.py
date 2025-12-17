@@ -5,8 +5,8 @@ from uuid import UUID
 
 from commons.unit_of_work.abc import UnitOfWork
 
-from auth.entities.user import User, UserRole
-from auth.entities.value_objects import Email
+from auth.domain.user import User, UserRole
+from auth.domain.value_objects import Email
 
 
 class UserRepository(ABC):

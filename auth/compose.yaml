@@ -6,16 +6,36 @@ services:
       dockerfile: "auth/Dockerfile"
     restart: no
     networks:
-      # - microservices
+      - microservices
       - auth-internal
-    # ports:
-    #   - 8001:8000
+    ports:
+      - 8001:8000
     env_file:
       - .dev/.env
     environment:
       - APP_DB__DSN=postgresql+asyncpg://auth:auth@auth-db:5432/auth
     volumes:
       - .dev/secrets:/var/run/secrets
+    depends_on:
+      - auth-db
+      - rabbitmq
+
+  auth-outbox-worker:
+    image: local/auth:latest
+    build:
+      context: ".."
+      dockerfile: "auth/Dockerfile"
+    command: python -m commons.outbox.worker
+    restart: unless-stopped
+    networks:
+      - microservices
+      - auth-internal
+    environment:
+      - OUTBOX_POSTGRES_DSN=postgresql://auth:auth@auth-db:5432/auth
+      - OUTBOX_RABBITMQ_DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672/
+    depends_on:
+      - auth-db
+      - rabbitmq
 
   auth-db:
     image: postgres:17.4

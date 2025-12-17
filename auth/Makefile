@@ -7,10 +7,15 @@ generate-client: generate-schema
 	openapi-generator-cli generate -g python -o client -i openapi.json -c openapi-generator-config.yaml
 
 docker-dev:
-	docker compose -f compose.yaml up
+	docker compose -f compose.yaml -f ../compose.infra.yaml up
 
+docker-dev-build:
+	docker compose -f compose.yaml -f ../compose.infra.yaml up --build
 dev:
 	$(ENV_PREFIX) uv run uvicorn --reload --workers 1 --factory auth.api:create_app
+
+worker:
+	$(ENV_PREFIX) uv run python -m auth.worker
 
 migrate:
 	$(ENV_PREFIX) uv run alembic upgrade head

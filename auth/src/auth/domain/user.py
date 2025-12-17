@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Protocol
@@ -144,7 +145,7 @@ class User(Aggregate[UUID, Any]):
         hasher: PasswordHasher,
         created_at: datetime,
     ) -> "User":
-        return User(
+        user = User(
             user_id=user_id,
             email=email,
             first_name=first_name,
@@ -156,6 +157,16 @@ class User(Aggregate[UUID, Any]):
             status=UserStatus.NON_ACTIVE,
             created_at=created_at,
         )
+        user._push_event(
+            UserCreatedEvent(
+                user_id=user_id,
+                email=email.value,
+                first_name=first_name,
+                last_name=last_name,
+                occurred_on=created_at,
+            )
+        )
+        return user
 
     def create_session(
         self,
@@ -176,3 +187,12 @@ class User(Aggregate[UUID, Any]):
             raise DomainError(f"Unknown session with id {session_id}")
 
         return session.close(now)
+
+
+@dataclass(frozen=True, slots=True, eq=True)
+class UserCreatedEvent:
+    user_id: UUID
+    email: str
+    first_name: str
+    last_name: str
+    occurred_on: datetime

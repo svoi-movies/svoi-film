@@ -3,8 +3,8 @@ from uuid import UUID
 
 import pytest
 
-from auth.entities.user import User
-from auth.entities.value_objects import Email, UserPassword
+from auth.domain.user import User
+from auth.domain.value_objects import Email, UserPassword
 from auth.services.password_hasher import BcryptPasswordHasher
 
 

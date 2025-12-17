@@ -5,7 +5,7 @@ from commons.ddd import ValueObjectValidationError
 from hypothesis import given
 from hypothesis import strategies as st
 
-from auth.entities.value_objects import Email, UserPassword
+from auth.domain.value_objects import Email, UserPassword
 
 """
 Когда пишете юнит тесты на питоне у вас есть два концептуальных подхода:

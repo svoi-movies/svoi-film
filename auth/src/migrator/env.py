@@ -1,5 +1,4 @@
 import asyncio
-import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -10,8 +9,6 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from auth.persistence.schema import mapper_registry
 from migrator.config import Config
 
-print(os.environ)
-
 config = Config()  # pyright: ignore[reportCallIssue]
 alembic_config = context.config
 
@@ -20,7 +17,6 @@ alembic_config.set_main_option("sqlalchemy.url", config.db_dsn.encoded_string())
 if alembic_config.config_file_name is not None:
     fileConfig(alembic_config.config_file_name)
 
-# wire_mappers()
 target_metadata = mapper_registry.metadata
 
 

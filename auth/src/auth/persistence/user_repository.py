@@ -5,8 +5,8 @@ from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship, selectinload
 
-from auth.entities.user import Session, User
-from auth.entities.value_objects import Email
+from auth.domain.user import Session, User
+from auth.domain.value_objects import Email
 from auth.persistence.schema import mapper_registry
 from auth.use_cases.interfaces import UserRepository
 

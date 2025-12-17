@@ -1,7 +1,10 @@
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import sqlalchemy as sa
+from aio_pika import ExchangeType
+from aio_pika.abc import AbstractConnection
 from dishka import AsyncContainer
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
@@ -21,6 +24,8 @@ instrumentator = Instrumentator(
     inprogress_name="inprogress",
     inprogress_labels=True,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def create_base_app() -> FastAPI:
@@ -55,6 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     container: AsyncContainer = app.state.dishka_container
     _ = await container.get(Config)
     await check_db_connection(container)
+    await declare_exchanges(container)
     yield
 
 
@@ -62,6 +68,19 @@ async def check_db_connection(container: AsyncContainer) -> None:
     """
     Просто берем соединение и пытаемся сделать select 1
     """
+
     engine = await container.get(AsyncEngine)
     async with engine.connect() as conn:
         await conn.scalar(sa.select(1))
+    logger.info("Successfully connected to database")
+
+
+async def declare_exchanges(container: AsyncContainer) -> None:
+    connection = await container.get(AbstractConnection)
+    async with connection.channel() as channel:
+        users = await channel.declare_exchange(
+            "users", ExchangeType.TOPIC, durable=True
+        )
+        all = await channel.declare_queue("all", durable=True)
+        await all.bind(users, routing_key="#")
+    logger.info("Successfully declared exchanges")
