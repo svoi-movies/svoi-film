@@ -1,0 +1,58 @@
+services:
+  feedback:
+    image: local/feedback:latest
+    build:
+      context: ".."
+      dockerfile: "feedback/Dockerfile"
+    restart: no
+    networks:
+      - microservices
+      - feedback-internal
+    ports:
+      - 8001:8000
+    env_file:
+      - .dev/.env
+    environment:
+      - APP_DB__DSN=postgresql+asyncpg://feedback:feedback@feedback-db:5432/feedback
+    volumes:
+      - .dev/secrets:/var/run/secrets
+    depends_on:
+      - feedback-db
+      - rabbitmq
+
+  feedback-outbox-worker:
+    image: local/feedback:latest
+    build:
+      context: ".."
+      dockerfile: "feedback/Dockerfile"
+    command: python -m commons.outbox.worker
+    restart: unless-stopped
+    networks:
+      - microservices
+      - feedback-internal
+    environment:
+      - OUTBOX_POSTGRES_DSN=postgresql://feedback:feedback@feedback-db:5432/feedback
+      - OUTBOX_RABBITMQ_DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672/
+    depends_on:
+      - feedback-db
+      - rabbitmq
+
+  feedback-db:
+    image: postgres:17.4
+    environment:
+      - "POSTGRES_USER=feedback"
+      - "POSTGRES_PASSWORD=feedback"
+      - "POSTGRES_DB=feedback"
+    ports:
+      - 15432:5432
+    networks:
+      - feedback-internal
+    volumes:
+      - feedback-pgdata:/var/lib/postgresql
+
+networks:
+  feedback-internal:
+    driver: bridge
+
+volumes:
+  feedback-pgdata:
