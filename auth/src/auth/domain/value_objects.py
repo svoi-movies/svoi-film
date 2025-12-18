@@ -1,13 +1,6 @@
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Callable
 
 from commons.ddd import Validator
-from pytz import UTC
-
-
-def is_in_utc(dt: datetime) -> Callable[[], bool]:
-    return lambda: dt.tzinfo == UTC
 
 
 @dataclass(frozen=True, eq=True, slots=True)
@@ -49,28 +42,6 @@ class UserPassword:
                 self.value,
                 "Password must contain any special symbol",
             )
-
-
-@dataclass(frozen=True, slots=True, eq=True)
-class ActivationCode:
-    code: str
-    valid_until: datetime
-    created_at: datetime
-
-    def __post_init__(self) -> None:
-        with Validator() as v:
-            v.must_regexp_full_match(
-                r"\d\d\d-\d\d\d",
-                self.code,
-                "Activation code must match the pattern 000-000",
-            )
-            v.must(
-                lambda: self.valid_until > self.created_at,
-                "Valid until must be greater than creation time",
-            )
-
-            v.must(is_in_utc(self.valid_until), "Valid until must has any timezone")
-            v.must(is_in_utc(self.created_at), "Created at must has any timezone")
 
 
 @dataclass(frozen=True, slots=True, eq=True)

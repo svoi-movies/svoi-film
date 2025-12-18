@@ -1,11 +1,7 @@
-from datetime import datetime
 from typing import Any, Protocol, Sequence
 
 
-class DomainEvent(Protocol):
-    type: str
-    category: str
-    occurred_on: datetime
+class DomainEvent(Protocol): ...
 
 
 class Id(Protocol):

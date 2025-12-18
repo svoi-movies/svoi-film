@@ -9,7 +9,7 @@ from dishka import AsyncContainer, Provider, Scope, make_async_container, provid
 from faststream.rabbit import RabbitBroker
 
 from auth.config import Config
-from auth.domain.user import PasswordHasher
+from auth.domain.role import PasswordService
 from auth.persistence.uow import UserUnitOfWork
 from auth.services.jwt_issuer import JoseJwtIssuer
 from auth.services.password_hasher import BcryptPasswordHasher
@@ -57,7 +57,7 @@ class AppProvider(Provider):
         )
 
     @provide
-    async def password_hasher(self) -> PasswordHasher:
+    async def password_hasher(self) -> PasswordService:
         return BcryptPasswordHasher()
 
     # Запрашивается provides, возвращется source
