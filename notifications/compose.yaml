@@ -1,0 +1,15 @@
+services:
+  notifications:
+    image: local/notifications:latest
+    build:
+      context: ".."
+      dockerfile: "notifications/Dockerfile"
+    restart: no
+    network_mode: host
+    command: python -m notifications.worker
+    ports:
+      - 8001:8000
+    env_file:
+      - .dev/.env
+    volumes:
+      - .dev/secrets:/var/run/secrets
