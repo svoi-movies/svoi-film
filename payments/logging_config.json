@@ -1,0 +1,46 @@
+{
+    "version": 1,
+    "filters": [],
+    "formatters": {
+        "json": {
+            "()": "commons.utils.log.JsonFormatter"
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            "formatter": "json",
+            "stream": "ext://sys.stdout"
+        }
+    },
+    "loggers": {
+        "uvicorn": {
+            "handlers": [
+                "console"
+            ],
+            "level": "INFO",
+            "propagate": false
+        },
+        "uvicorn.access": {
+            "handlers": [
+                "console"
+            ],
+            "level": "INFO",
+            "propagate": false
+        },
+        "uvicorn.errors": {
+            "handlers": [
+                "console"
+            ],
+            "level": "INFO",
+            "propagate": false
+        }
+    },
+    "root": {
+        "handlers": [
+            "console"
+        ],
+        "level": "DEBUG"
+    }
+}

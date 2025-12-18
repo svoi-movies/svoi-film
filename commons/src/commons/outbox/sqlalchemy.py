@@ -1,6 +1,7 @@
 import dataclasses
 import json
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, ClassVar, Protocol
 from uuid import UUID
 
@@ -24,6 +25,8 @@ class DataclassSerializer[T: Any]:
             return str(value)
         elif isinstance(value, datetime):
             return value.isoformat()
+        elif isinstance(value, Decimal):
+            return str(value)
         raise TypeError(f"Unsupoorted type {type(value)}")
 
     def serialize(self, object: T) -> str:
