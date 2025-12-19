@@ -5,8 +5,13 @@ from commons.unit_of_work.sqlalchemy import UnitOfWork
 from commons.utils.common_providers import DateTimeProvider, UUIDProvider
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.domain.user import UserCreatedEvent
+from auth.domain.role import UserCreatedEvent
+from auth.persistence.role_repository import SqlAlchemyRoleRepository
+from auth.persistence.session_repository import SqlAlchemySessionRepository
 from auth.persistence.user_repository import SqlAlchemyUserRepository
+from auth.persistence.verification_code_repository import (
+    SqlAlchemyVerificationCodeRepository,
+)
 from auth.use_cases import interfaces
 
 
@@ -30,17 +35,32 @@ class UserUnitOfWork(interfaces.UserUnitOfWork, UnitOfWork[Any]):
         self._uuid_provider = uuid_provider
         self._dt_provider = dt_provider
         self._users = SqlAlchemyUserRepository(session)
+        self._sessions = SqlAlchemySessionRepository(session)
+        self._roles = SqlAlchemyRoleRepository(session)
+        self._verification_codes = SqlAlchemyVerificationCodeRepository(session)
 
     @property
     def users(self) -> interfaces.UserRepository:
         return self._users
 
+    @property
+    def sessions(self) -> interfaces.SessionRepository:
+        return self._sessions
+
+    @property
+    def roles(self) -> interfaces.RoleRepository:
+        return self._roles
+
+    @property
+    def verification_codes(self) -> interfaces.VerificationCodeReposiory:
+        return self._verification_codes
+
     @override
     async def handle_domain_events(self, events: list[Any]) -> None:
         for event in events:
-            destination_topic = "users"
+            destination_topic = "ikbo0722.burenin.users"
             if isinstance(event, UserCreatedEvent):
-                routing_key = f"user.{event.user_id}.created"
+                routing_key = "ikbo0722.burenin.users.created"
             else:
                 raise TypeError(f"Can't handle message of type {type(event)}: {event}")
 

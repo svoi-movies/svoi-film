@@ -22,9 +22,12 @@ RUN rm -f /app/.venv/bin/python*
 
 FROM python:3.13-slim-bookworm
 
+ARG MCS_NAME
+
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 ENV PYTHONPATH=/app
+ENV MCS_NAME=${MCS_NAME}
 
 WORKDIR /app
 
@@ -41,4 +44,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=5)" || exit 1
 
-CMD ["python", "-m", "uvicorn", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--factory", "notifications.api:create_app"]
+CMD sh -c "python -m uvicorn --host 0.0.0.0 --port 8000 --workers 1 --factory ${MCS_NAME}.api:create_app"

@@ -51,7 +51,13 @@ class RoleRepository(ABC):
     async def get_by_id(self, role_id: UUID) -> Role: ...
 
     @abstractmethod
+    async def get_by_name(self, name: str) -> Role: ...
+
+    @abstractmethod
     async def get_by_user_id(self, user_id: UUID) -> Role: ...
+
+    @abstractmethod
+    async def list_all(self) -> list[Role]: ...
 
 
 class VerificationCodeReposiory(ABC):
@@ -101,5 +107,5 @@ class JwtIssuer(ABC):
         last_name: str,
         email: Email,
         session_id: UUID,
-        role: UserRole,
+        role: str,
     ) -> Token: ...

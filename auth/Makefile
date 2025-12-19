@@ -7,16 +7,14 @@ generate-client: generate-schema
 	openapi-generator-cli generate -g python -o client -i openapi.json -c openapi-generator-config.yaml
 
 docker-dev:
- 	cd ..; \
 	docker compose -f auth/compose.yaml -f compose.infra.yaml up
 
 docker-dev-build:
-	cd ..; \
 	docker compose -f compose.yaml -f ../compose.infra.yaml up --build
 
 
 api:
-	$(ENV_PREFIX) uv run uvicorn --reload --workers 1 --factory auth.api:create_app
+	$(ENV_PREFIX) uv run uvicorn --reload --workers 1 --factory auth.api:create_app --port 8001
 
 worker:
 	$(ENV_PREFIX) uv run python -m auth.worker

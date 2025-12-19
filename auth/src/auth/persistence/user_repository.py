@@ -1,13 +1,11 @@
 from uuid import UUID
 
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import relationship, selectinload
 
-from auth.domain.user import Session, User
+from auth.domain.role import User
 from auth.domain.value_objects import Email
-from auth.persistence.schema import mapper_registry
+from auth.persistence.schema import users
 from auth.use_cases.interfaces import UserRepository
 
 
@@ -25,17 +23,13 @@ class SqlAlchemyUserRepository(UserRepository):
 
     async def get_by_id(self, user_id: UUID) -> User:
         result = await self.__session.execute(
-            sa.select(User)
-            .where(users.c.id == user_id)
-            .options(selectinload(User._sessions))
+            sa.select(User).where(users.c.id == user_id)
         )
         user = result.scalar_one()
         return user
 
     async def find_by_email(self, email: Email) -> User | None:
         result = await self.__session.execute(
-            sa.select(User)
-            .where(users.c.email == email)
-            .options(selectinload(User._sessions))
+            sa.select(User).where(users.c.email == email)
         )
         return result.scalar_one_or_none()

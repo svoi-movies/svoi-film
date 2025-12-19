@@ -4,12 +4,21 @@ services:
     build:
       context: ".."
       dockerfile: "notifications/Dockerfile"
+      args:
+        - MCS_NAME=notifications
     restart: no
-    network_mode: host
     command: python -m notifications.worker
-    ports:
-      - 8001:8000
     env_file:
       - .dev/.env
+    environment:
+      - APP_RABBIT_DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672
+    ports:
+      - 8003:8000
     volumes:
       - .dev/secrets:/var/run/secrets
+    networks:
+      - microservices
+
+networks:
+  microservices:
+    external: true

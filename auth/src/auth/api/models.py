@@ -15,14 +15,15 @@ type LastName = Annotated[str, Field(min_length=1, max_length=32)]
 type Password = Annotated[str, Field(min_length=8, max_length=32)]
 
 
-class CreateViewerRequest(BaseModel):
+class SelfRegisterRequest(BaseModel):
+    role: str
     email: EmailStr
     first_name: FirstName
     last_name: LastName
     password: Password
 
 
-class CreateViewerResponse(BaseModel):
+class SelfRegisterResponse(BaseModel):
     id: UUID
 
 
@@ -43,3 +44,32 @@ class GetMeResponse(BaseModel):
     email: str
     first_name: str
     last_name: str
+
+
+class CreateRoleRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+    allow_self_registration: bool
+    creator_role_id: UUID | None = None
+
+
+class CreateRoleResponse(BaseModel):
+    id: UUID
+
+
+class RoleResponse(BaseModel):
+    id: UUID
+    name: str
+    allow_self_registration: bool
+    creator_role_id: UUID | None
+
+
+class CreateUserRequest(BaseModel):
+    role: str
+    email: EmailStr
+    first_name: FirstName
+    last_name: LastName
+    password: Password
+
+
+class CreateUserResponse(BaseModel):
+    id: UUID

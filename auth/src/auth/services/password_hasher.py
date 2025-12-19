@@ -2,6 +2,8 @@ from typing import Literal
 
 import bcrypt
 
+from auth.domain.value_objects import UserPassword
+
 
 class BcryptPasswordHasher:
 
@@ -15,17 +17,17 @@ class BcryptPasswordHasher:
         self.salt_rounds = salt_rounds
         self.salt_prefix = salt_prefix
 
-    def hash_password(self, password: str) -> str:
+    def hash_password(self, password: UserPassword) -> str:
         return bcrypt.hashpw(
-            password.encode(self.encoding),
+            password.value.encode(self.encoding),
             salt=bcrypt.gensalt(
                 rounds=self.salt_rounds,
                 prefix=self.salt_prefix,
             ),
         ).hex()
 
-    def verify(self, password: str, password_hash: str) -> bool:
+    def verify(self, password: UserPassword, password_hash: str) -> bool:
         return bcrypt.checkpw(
-            password=password.encode(self.encoding),
+            password=password.value.encode(self.encoding),
             hashed_password=bytes.fromhex(password_hash),
         )
