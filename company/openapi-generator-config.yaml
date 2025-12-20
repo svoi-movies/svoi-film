@@ -1,0 +1,15 @@
+# OpenAPI Generator configuration for Python async client
+packageName: company_client
+projectName: company-client
+packageVersion: 0.1.0
+
+# Python specific settings
+packageUrl: ""
+library: httpx 
+
+# Generation options
+generateSourceCodeOnly: true
+hideGenerationTimestamp: true
+
+# API client configuration
+disallowAdditionalPropertiesIfNotPresent: false
