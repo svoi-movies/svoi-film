@@ -1,6 +1,6 @@
 networks:
   microservices:
-    driver: bridge
+    name: microservices
 
 services:
   rabbitmq:
@@ -14,10 +14,10 @@ services:
       - "15672:15672"
     expose:
       - 5672
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - microservices
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s

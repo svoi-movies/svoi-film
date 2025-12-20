@@ -4,27 +4,31 @@ services:
     build:
       context: ".."
       dockerfile: "payments/Dockerfile"
+      args:
+        - MCS_NAME=payments
     restart: no
     networks:
       - microservices
       - payments-internal
     ports:
-      - 8001:8000
+      - 8004:8000
     env_file:
       - .dev/.env
     environment:
       - APP_DB__DSN=postgresql+asyncpg://payments:payments@payments-db:5432/payments
+      - APP_RABBIT__DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672
     volumes:
       - .dev/secrets:/var/run/secrets
     depends_on:
       - payments-db
-      - rabbitmq
 
   payments-outbox-worker:
     image: local/payments:latest
     build:
       context: ".."
       dockerfile: "payments/Dockerfile"
+      args:
+        - MCS_NAME=payments
     command: python -m commons.outbox.worker
     restart: unless-stopped
     networks:
@@ -35,8 +39,6 @@ services:
       - OUTBOX_RABBITMQ_DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672/
     depends_on:
       - payments-db
-      - rabbitmq
-
   payments-db:
     image: postgres:17.4
     environment:
@@ -44,13 +46,15 @@ services:
       - "POSTGRES_PASSWORD=payments"
       - "POSTGRES_DB=payments"
     ports:
-      - 15432:5432
+      - 45432:5432
     networks:
       - payments-internal
     volumes:
       - payments-pgdata:/var/lib/postgresql
 
 networks:
+  microservices:
+    external: true
   payments-internal:
     driver: bridge
 

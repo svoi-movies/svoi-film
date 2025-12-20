@@ -1,14 +1,22 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Protocol, override
+from typing import Any, Protocol
 from uuid import UUID
 
 from commons.ddd import Aggregate, Validator
 from commons.ddd.errors import DomainError
 
 from auth.domain.value_objects import Email, UserPassword
+
+
+@dataclass(frozen=True)
+class UserCreatedEvent:
+    user_id: UUID
+    email: str
+    role_id: UUID
+    first_name: str
+    last_name: str
 
 
 class PasswordService(Protocol):
@@ -18,67 +26,34 @@ class PasswordService(Protocol):
     def verify(self, password: UserPassword, password_hash: str) -> bool: ...
 
 
-class CreationAction: ...
-
-
-class SendEmailVerificationCodeAction(CreationAction): ...
-
-
-class SendEmailOneTimePassword(CreationAction): ...
-
-
-class ActivationRequirements(ABC):
-    type: str
-
-    @abstractmethod
-    def check(self, user: "User") -> bool: ...
-
-
-class MustVerifyEmail(ActivationRequirements):
-
-    @override
-    def check(self, user: "User") -> bool:
-        return user.email_verified
-
-
-class MustChangePassword(ActivationRequirements):
-
-    @override
-    def check(self, user: "User") -> bool:
-        return user.password_changed
-
-
 class Role(Aggregate[UUID, Any]):
 
     def __init__(
         self,
         role_id: UUID,
         name: str,
-        creation_actions: list[CreationAction],
-        activation_requirements: list[ActivationRequirements],
         allow_self_registration: bool,
+        creator_role_id: UUID | None = None,
     ) -> None:
         super().__init__(role_id)
-        self._name = name
-        self._activation_requirements = activation_requirements
-        self._creation_actions = creation_actions
-        self._allow_self_registration = allow_self_registration
+        self.name = name
+        self.allow_self_registration = allow_self_registration
+        self.creator_role_id = creator_role_id
 
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def activation_requirements(self) -> list[ActivationRequirements]:
-        return self._activation_requirements[:]
-
-    @property
-    def creation_actions(self) -> list[CreationAction]:
-        return self._creation_actions[:]
-
-    @property
-    def allow_self_registration(self) -> bool:
-        return self._allow_self_registration
+    @classmethod
+    def new(
+        cls,
+        role_id: UUID,
+        name: str,
+        allow_self_registration: bool,
+        creator_role_id: UUID | None = None,
+    ) -> "Role":
+        return Role(
+            role_id=role_id,
+            name=name,
+            allow_self_registration=allow_self_registration,
+            creator_role_id=creator_role_id,
+        )
 
 
 class VerificationCode(Aggregate[UUID, Any]):
@@ -91,27 +66,27 @@ class VerificationCode(Aggregate[UUID, Any]):
         created_at: datetime,
     ) -> None:
         super().__init__(code_id)
-        self._user_id = user_id
-        self._code = code
-        self._valid_until = valid_until
-        self._created_at = created_at
+        self.user_id = user_id
+        self.code = code
+        self.valid_until = valid_until
+        self.created_at = created_at
 
         with Validator() as v:
             v.must_regexp_full_match(
                 r"\d\d\d-\d\d\d",
-                self._code,
+                self.code,
                 "Verification code must match the pattern 000-000",
             )
             v.must(
-                lambda: self._valid_until > self._created_at,
+                lambda: self.valid_until > self.created_at,
                 "Valid until must be greater than creation time",
             )
 
     def verify(self, entered_code: str, now: datetime) -> None:
-        if now >= self._valid_until:
+        if now >= self.valid_until:
             raise DomainError("Verification code has expired")
 
-        if not self._code == entered_code:
+        if not self.code == entered_code:
             raise DomainError(f"Verification code '{entered_code}' is invalid")
 
 
@@ -128,10 +103,10 @@ class Session(Aggregate[UUID, Any]):
         closed_at: datetime | None,
     ) -> None:
         super().__init__(session_id)
-        self._created_at = created_at
-        self._expires_at = expires_at
-        self._closed_at = closed_at
-        self._user_id = user_id
+        self.created_at = created_at
+        self.expires_at = expires_at
+        self.closed_at = closed_at
+        self.user_id = user_id
 
     @classmethod
     def new(cls, session_id: UUID, user_id: UUID, now: datetime) -> "Session":
@@ -144,21 +119,13 @@ class Session(Aggregate[UUID, Any]):
         )
 
     def is_active_now(self, now: datetime) -> bool:
-        return self._expires_at >= now and self._closed_at is None
+        return self.expires_at >= now and self.closed_at is None
 
     def close(self, now: datetime) -> None:
         if not self.is_active_now(now):
             raise DomainError("Can't close closed session")
 
-        self._closed_at = now
-
-    @property
-    def user_id(self) -> UUID:
-        return self._user_id
-
-    @property
-    def created_at(self) -> datetime:
-        return self._created_at
+        self.closed_at = now
 
 
 class UserStatus(str, Enum):
@@ -184,27 +151,32 @@ class User(Aggregate[UUID, Any]):
         created_at: datetime,
     ) -> None:
         super().__init__(user_id)
-        self._email = email
-        self._first_name = first_name
-        self._last_name = last_name
-        self._role_id = role_id
-        self._status = status
-        self._created_by = created_by
-        self._password_hash = password_hash
-        self._password_changed_at = password_changed_at
-        self._email_verified_at = email_verified_at
-        self._created_at = created_at
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+        self.role_id = role_id
+        self.status = status
+        self.created_by = created_by
+        self.password_hash = password_hash
+        self.password_changed_at = password_changed_at
+        self.email_verified_at = email_verified_at
+        self.created_at = created_at
 
     def activate(self) -> None:
-        self._status = UserStatus.ACTIVE
+        self.status = UserStatus.ACTIVE
 
     @property
-    def role_id(self) -> UUID:
-        return self._role_id
+    def email_verified(self) -> bool:
+        return self.email_verified_at is not None
+
+    @property
+    def password_changed(self) -> bool:
+        return self.password_changed_at is not None
 
     def verify_email(self, now: datetime) -> None:
-        self._email_verified_at = now
-        self._push_event(EmailVerifiedEvent(self.id, self._email.value, now))
+        self.email_verified_at = now
+        # Активируем пользователя после верификации email
+        self.status = UserStatus.ACTIVE
 
     def change_password(
         self,
@@ -213,40 +185,11 @@ class User(Aggregate[UUID, Any]):
         new_password: UserPassword,
         now: datetime,
     ) -> None:
-        if not service.verify(old_password, self._password_hash):
+        if not service.verify(old_password, self.password_hash):
             raise DomainError("Old password is invalid")
 
-        self._password_hash = service.hash_password(new_password)
-        self._password_changed_at = now
-        self._push_event(PasswordChangedEvent(self.id, self._email.value, now))
-
-    @property
-    def email_verified(self) -> bool:
-        return self._email_verified_at is not None
-
-    @property
-    def password_changed(self) -> bool:
-        return self._password_changed_at is not None
-
-    @property
-    def status(self) -> UserStatus:
-        return self._status
-
-    @property
-    def first_name(self) -> str:
-        return self._first_name
-
-    @property
-    def last_name(self) -> str:
-        return self._last_name
-
-    @property
-    def email(self) -> Email:
-        return self._email
-
-    @property
-    def password_hash(self) -> str:
-        return self._password_hash
+        self.password_hash = service.hash_password(new_password)
+        self.password_changed_at = now
 
     @classmethod
     def new(
@@ -260,7 +203,7 @@ class User(Aggregate[UUID, Any]):
         created_by: UUID | None,
         now: datetime,
     ) -> "User":
-        return User(
+        user = User(
             user_id=user_id,
             email=email,
             role_id=role_id,
@@ -274,16 +217,16 @@ class User(Aggregate[UUID, Any]):
             status=UserStatus.PENDING,
         )
 
+        user._push_event(
+            UserCreatedEvent(
+                user_id=user_id,
+                email=email.value,
+                role_id=role_id,
+                first_name=first_name,
+                last_name=last_name,
+            )
+        )
 
-@dataclass(slots=True, frozen=True, eq=True)
-class EmailVerifiedEvent:
-    user_id: UUID
-    email: str
-    verified_at: datetime
+        return user
 
 
-@dataclass(slots=True, frozen=True, eq=True)
-class PasswordChangedEvent:
-    user_id: UUID
-    email: str
-    changed_at: datetime

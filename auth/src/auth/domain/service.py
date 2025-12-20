@@ -17,16 +17,6 @@ class UserService:
         self._uuid_provider = uuid_provider
         self._password_service = password_service
 
-    def try_activate_user(self, user: User, user_role: Role) -> bool:
-        assert user.role_id == user_role.id
-
-        if not all(req.check(user) for req in user_role.activation_requirements):
-            return False
-
-        user.activate()
-
-        return True
-
     def self_registrate(
         self,
         role: Role,
@@ -47,6 +37,41 @@ class UserService:
             first_name=first_name,
             last_name=last_name,
             created_by=None,
+            now=self._dt_provider.now_utc,
+            password_hash=password_hash,
+        )
+
+        return user
+
+    def create_user(
+        self,
+        target_role: Role,
+        creator_user: User,
+        creator_role: Role,
+        email: Email,
+        password: UserPassword,
+        first_name: str,
+        last_name: str,
+    ) -> User:
+        """Создание пользователя другим пользователем с проверкой прав"""
+        # Проверяем, что создатель может создавать пользователей с данной ролью
+        if target_role.creator_role_id is None:
+            raise DomainError(f"Role {target_role.name} cannot be assigned by other users")
+
+        if target_role.creator_role_id != creator_role.id:
+            raise DomainError(
+                f"Role {creator_role.name} cannot create users with role {target_role.name}"
+            )
+
+        password_hash = self._password_service.hash_password(password)
+
+        user = User.new(
+            user_id=self._uuid_provider.new_v4(),
+            email=email,
+            role_id=target_role.id,
+            first_name=first_name,
+            last_name=last_name,
+            created_by=creator_user.id,
             now=self._dt_provider.now_utc,
             password_hash=password_hash,
         )

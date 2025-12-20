@@ -45,4 +45,6 @@ class Aggregate[TId: Id, TEvent: DomainEvent](Entity[TId]):
         self.__events.append(event)
 
     def collect_events(self) -> Sequence[DomainEvent]:
-        return self.__events[:]
+        events = self.__events
+        self.__events = []
+        return events

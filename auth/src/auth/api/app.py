@@ -8,6 +8,7 @@ from aio_pika.abc import AbstractConnection
 from dishka import AsyncContainer
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -32,6 +33,13 @@ def create_base_app() -> FastAPI:
     from .routes import router
 
     app = FastAPI(lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.include_router(router)
     instrumentator.instrument(app).expose(app)
 

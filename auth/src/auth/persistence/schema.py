@@ -1,5 +1,7 @@
 import sqlalchemy as sa
+from commons.ddd.aggregate import Aggregate
 from commons.outbox.sqlalchemy import create_outbox_table, map_outbox_table
+from sqlalchemy import event
 from sqlalchemy.orm import registry
 
 from auth.domain.role import Role, Session, User, VerificationCode
@@ -44,9 +46,8 @@ roles = sa.Table(
     mapper_registry.metadata,
     sa.Column("id", sa.UUID(), primary_key=True),
     sa.Column("name", sa.String(64), nullable=False, unique=True),
-    sa.Column("creation_actions", sa.JSON(), nullable=False),
-    sa.Column("activation_requirements", sa.JSON(), nullable=False),
     sa.Column("allow_self_registration", sa.Boolean(), nullable=False, default=False),
+    sa.Column("creator_role_id", sa.UUID(), sa.ForeignKey("roles.id"), nullable=True),
 )
 
 users = sa.Table(
@@ -95,10 +96,9 @@ def wire_mappers() -> None:
         roles,
         properties={
             "_id": roles.c.id,
-            "_name": roles.c.name,
-            "_creation_actions": roles.c.creation_actions,
-            "_activation_requirements": roles.c.activation_requirements,
-            "_allow_self_registration": roles.c.allow_self_registration,
+            "name": roles.c.name,
+            "allow_self_registration": roles.c.allow_self_registration,
+            "creator_role_id": roles.c.creator_role_id,
         },
     )
 
@@ -107,10 +107,10 @@ def wire_mappers() -> None:
         verification_codes,
         properties={
             "_id": verification_codes.c.id,
-            "_user_id": verification_codes.c.user_id,
-            "_code": verification_codes.c.code,
-            "_valid_until": verification_codes.c.valid_until,
-            "_created_at": verification_codes.c.created_at,
+            "user_id": verification_codes.c.user_id,
+            "code": verification_codes.c.code,
+            "valid_until": verification_codes.c.valid_until,
+            "created_at": verification_codes.c.created_at,
         },
     )
 
@@ -119,10 +119,10 @@ def wire_mappers() -> None:
         sessions,
         properties={
             "_id": sessions.c.id,
-            "_user_id": sessions.c.user_id,
-            "_created_at": sessions.c.created_at,
-            "_expires_at": sessions.c.expires_at,
-            "_closed_at": sessions.c.closed_at,
+            "user_id": sessions.c.user_id,
+            "created_at": sessions.c.created_at,
+            "expires_at": sessions.c.expires_at,
+            "closed_at": sessions.c.closed_at,
         },
     )
 
@@ -131,17 +131,34 @@ def wire_mappers() -> None:
         users,
         properties={
             "_id": users.c.id,
-            "_email": users.c.email,
-            "_role_id": users.c.role_id,
-            "_first_name": users.c.first_name,
-            "_last_name": users.c.last_name,
-            "_status": users.c.status,
-            "_password_hash": users.c.password_hash,
-            "_password_changed_at": users.c.password_changed_at,
-            "_created_by": users.c.created_by,
-            "_email_verified_at": users.c.email_verified_at,
-            "_created_at": users.c.created_at,
+            "email": users.c.email,
+            "role_id": users.c.role_id,
+            "first_name": users.c.first_name,
+            "last_name": users.c.last_name,
+            "status": users.c.status,
+            "password_hash": users.c.password_hash,
+            "password_changed_at": users.c.password_changed_at,
+            "created_by": users.c.created_by,
+            "email_verified_at": users.c.email_verified_at,
+            "created_at": users.c.created_at,
         },
     )
 
     map_outbox_table(mapper_registry, outbox_table)
+
+    # Инициализируем агрегаты при загрузке из БД
+    @event.listens_for(User, "load")
+    def init_user(target, context):
+        Aggregate.__init__(target, target._id)
+
+    @event.listens_for(Role, "load")
+    def init_role(target, context):
+        Aggregate.__init__(target, target._id)
+
+    @event.listens_for(Session, "load")
+    def init_session(target, context):
+        Aggregate.__init__(target, target._id)
+
+    @event.listens_for(VerificationCode, "load")
+    def init_verification_code(target, context):
+        Aggregate.__init__(target, target._id)

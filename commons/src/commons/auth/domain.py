@@ -10,6 +10,7 @@ class Role(Enum):
     VIEWER = "viewer"
     CONTENT_OWNER = "content_owner"
     ADMIN = "admin"
+    ROOT = "root"
 
 
 class UserClaims(BaseModel):
@@ -28,7 +29,7 @@ def can_access_with_roles(
     if not allowed_roles:
         return True
 
-    if user_role == Role.ADMIN:
+    if user_role == Role.ADMIN or user_role == Role.ROOT:
         return True
 
     return user_role in allowed_roles

@@ -4,7 +4,7 @@ from uuid import UUID
 from commons.utils.common_providers import DateTimeProvider
 from jose import jws
 
-from auth.domain.user import UserRole
+from auth.domain.value_objects import Email
 from auth.use_cases.interfaces import (
     JwtIssuer,
     Token,
@@ -30,9 +30,9 @@ class JoseJwtIssuer(JwtIssuer):
         user_id: UUID,
         first_name: str,
         last_name: str,
-        email: str,
+        email: Email,
         session_id: UUID,
-        role: UserRole,
+        role: str,
     ) -> Token:
         now = self._date_time_provider.now_utc
         access_claims = {
@@ -41,7 +41,7 @@ class JoseJwtIssuer(JwtIssuer):
             "exp": int((now + self._access_token_ttl).timestamp()),
             "first_name": first_name,
             "last_name": last_name,
-            "email": email,
+            "email": email.value,
             "role": role,
             "nbf": int(now.timestamp()),
         }
