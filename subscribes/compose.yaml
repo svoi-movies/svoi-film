@@ -1,0 +1,55 @@
+services:
+  subscriptions:
+    image: local/subscriptions:latest
+    build:
+      context: ".."
+      dockerfile: "subscribes/Dockerfile"
+    restart: no
+    network_mode: host
+    command: ["python", "-m", "uvicorn", "--host", "0.0.0.0", "--port", "8003", "--workers", "1", "--factory", "subscriptions.api:create_app"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8003/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+    env_file:
+      - .dev/.env
+    environment:
+      - APP_DB__DSN=postgresql+asyncpg://subscriptions:subscriptions@localhost:25432/subscriptions
+      - APP_RABBIT__DSN=amqp://rabbitmq:rabbitmq@localhost:5672/
+    volumes:
+      - .dev/secrets:/var/run/secrets
+    depends_on:
+      - subscriptions-db
+      - rabbitmq
+
+  subscriptions-outbox-worker:
+    image: local/subscriptions:latest
+    build:
+      context: ".."
+      dockerfile: "subscribes/Dockerfile"
+    command: python -m commons.outbox.worker
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - OUTBOX_POSTGRES_DSN=postgresql://subscriptions:subscriptions@localhost:25432/subscriptions
+      - OUTBOX_RABBITMQ_DSN=amqp://rabbitmq:rabbitmq@localhost:5672/
+      - APP_RABBIT__DSN=amqp://rabbitmq:rabbitmq@localhost:5672/
+    depends_on:
+      - subscriptions-db
+      - rabbitmq
+
+  subscriptions-db:
+    image: postgres:17.4
+    environment:
+      - "POSTGRES_USER=subscriptions"
+      - "POSTGRES_PASSWORD=subscriptions"
+      - "POSTGRES_DB=subscriptions"
+    ports:
+      - 25432:5432
+    volumes:
+      - subscriptions-pgdata:/var/lib/postgresql
+
+volumes:
+  subscriptions-pgdata:
