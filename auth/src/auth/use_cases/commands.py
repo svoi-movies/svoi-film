@@ -13,7 +13,6 @@ from .interfaces import JwtIssuer, Token, UserUnitOfWork
 
 
 class UserCommands:
-
     def __init__(
         self,
         uow: UserUnitOfWork,

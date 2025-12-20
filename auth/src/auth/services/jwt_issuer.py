@@ -12,7 +12,6 @@ from auth.use_cases.interfaces import (
 
 
 class JoseJwtIssuer(JwtIssuer):
-
     def __init__(
         self,
         signing_key: str,

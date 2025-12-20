@@ -20,14 +20,12 @@ class UserCreatedEvent:
 
 
 class PasswordService(Protocol):
-
     def hash_password(self, password: UserPassword) -> str: ...
 
     def verify(self, password: UserPassword, password_hash: str) -> bool: ...
 
 
 class Role(Aggregate[UUID, Any]):
-
     def __init__(
         self,
         role_id: UUID,
@@ -91,7 +89,6 @@ class VerificationCode(Aggregate[UUID, Any]):
 
 
 class Session(Aggregate[UUID, Any]):
-
     TTL = timedelta(days=2)
 
     def __init__(
@@ -135,7 +132,6 @@ class UserStatus(str, Enum):
 
 
 class User(Aggregate[UUID, Any]):
-
     def __init__(
         self,
         user_id: UUID,
@@ -228,5 +224,3 @@ class User(Aggregate[UUID, Any]):
         )
 
         return user
-
-

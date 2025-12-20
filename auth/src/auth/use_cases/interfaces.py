@@ -10,7 +10,6 @@ from auth.domain.value_objects import Email
 
 
 class UserRepository(ABC):
-
     @abstractmethod
     def add(self, user: User) -> None: ...
 
@@ -25,7 +24,6 @@ class UserRepository(ABC):
 
 
 class SessionRepository(ABC):
-
     @abstractmethod
     def add(self, session: Session) -> None: ...
 
@@ -40,7 +38,6 @@ class SessionRepository(ABC):
 
 
 class RoleRepository(ABC):
-
     @abstractmethod
     def add(self, role: Role) -> None: ...
 
@@ -61,7 +58,6 @@ class RoleRepository(ABC):
 
 
 class VerificationCodeReposiory(ABC):
-
     @abstractmethod
     def add(self, code: VerificationCode) -> None: ...
 
@@ -98,7 +94,6 @@ class Token:
 
 
 class JwtIssuer(ABC):
-
     @abstractmethod
     def issue_token(
         self,

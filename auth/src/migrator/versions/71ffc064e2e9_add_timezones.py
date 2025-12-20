@@ -5,13 +5,13 @@ Revises: 026_add_root_user
 Create Date: 2025-12-20 02:55:43.892727
 
 """
+
 from typing import Sequence, Union
 
 
-
 # revision identifiers, used by Alembic.
-revision: str = '71ffc064e2e9'
-down_revision: Union[str, Sequence[str], None] = '026_add_root_user'
+revision: str = "71ffc064e2e9"
+down_revision: Union[str, Sequence[str], None] = "026_add_root_user"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

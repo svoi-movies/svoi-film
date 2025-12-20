@@ -21,7 +21,6 @@ class RoleResult:
 
 
 class UserQueries:
-
     def __init__(self, uow: UserUnitOfWork) -> None:
         self._uow = uow
 

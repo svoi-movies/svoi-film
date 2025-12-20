@@ -6,7 +6,6 @@ from auth.domain.value_objects import UserPassword
 
 
 class BcryptPasswordHasher:
-
     def __init__(
         self,
         encoding: str = "utf-8",

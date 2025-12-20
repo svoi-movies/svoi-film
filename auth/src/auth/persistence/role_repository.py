@@ -9,7 +9,6 @@ from auth.use_cases.interfaces import RoleRepository
 
 
 class SqlAlchemyRoleRepository(RoleRepository):
-
     def __init__(self, session: AsyncSession) -> None:
         super().__init__()
         self.__session = session

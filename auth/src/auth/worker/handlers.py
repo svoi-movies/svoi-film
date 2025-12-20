@@ -45,7 +45,7 @@ async def send_verification_code(
     return EmailNotification(
         subject="Код верификации для входа",
         body=f"Здравствуйте, {event.first_name}!\n\n"
-             f"Ваш код верификации: {verification_code.code}\n\n"
-             f"Код действителен в течение 24 часов.",
+        f"Ваш код верификации: {verification_code.code}\n\n"
+        f"Код действителен в течение 24 часов.",
         email=event.email,
     )

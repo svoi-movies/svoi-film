@@ -6,7 +6,6 @@ from auth.domain.value_objects import Email, UserPassword
 
 
 class UserService:
-
     def __init__(
         self,
         dt_provier: DateTimeProvider,
@@ -56,7 +55,9 @@ class UserService:
         """Создание пользователя другим пользователем с проверкой прав"""
         # Проверяем, что создатель может создавать пользователей с данной ролью
         if target_role.creator_role_id is None:
-            raise DomainError(f"Role {target_role.name} cannot be assigned by other users")
+            raise DomainError(
+                f"Role {target_role.name} cannot be assigned by other users"
+            )
 
         if target_role.creator_role_id != creator_role.id:
             raise DomainError(

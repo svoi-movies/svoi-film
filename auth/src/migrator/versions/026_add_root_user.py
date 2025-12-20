@@ -5,6 +5,7 @@ Revises: 025576389ff2
 Create Date: 2025-12-20
 
 """
+
 from typing import Sequence, Union
 from datetime import datetime, timezone
 import uuid
@@ -14,8 +15,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '026_add_root_user'
-down_revision: Union[str, Sequence[str], None] = '025576389ff2'
+revision: str = "026_add_root_user"
+down_revision: Union[str, Sequence[str], None] = "025576389ff2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -30,9 +31,7 @@ def upgrade() -> None:
             INSERT INTO roles (id, name, allow_self_registration, creator_role_id)
             VALUES (:role_id, 'root', false, NULL)
             """
-        ).bindparams(
-            sa.bindparam("role_id", value=root_role_id, type_=sa.UUID)
-        )
+        ).bindparams(sa.bindparam("role_id", value=root_role_id, type_=sa.UUID))
     )
 
     # Создаем пользователя root
@@ -54,15 +53,23 @@ def upgrade() -> None:
             """
         ).bindparams(
             sa.bindparam("user_id", value=root_user_id, type_=sa.UUID),
-            sa.bindparam("email", value='root@svoifilm.com', type_=sa.String),
+            sa.bindparam("email", value="root@svoifilm.com", type_=sa.String),
             sa.bindparam("role_id", value=root_role_id, type_=sa.UUID),
-            sa.bindparam("first_name", value='root', type_=sa.String),
-            sa.bindparam("last_name", value='root', type_=sa.String),
-            sa.bindparam("status", value='active', type_=sa.String),
-            sa.bindparam("password_hash", value='24326224313224435146567874583548453865326c464844357856664f62794939755452694a6d63377730386e784939586a516c6267516942374d47', type_=sa.String),
-            sa.bindparam("password_changed_at", value=now, type_=sa.DateTime(timezone=True)),
+            sa.bindparam("first_name", value="root", type_=sa.String),
+            sa.bindparam("last_name", value="root", type_=sa.String),
+            sa.bindparam("status", value="active", type_=sa.String),
+            sa.bindparam(
+                "password_hash",
+                value="24326224313224435146567874583548453865326c464844357856664f62794939755452694a6d63377730386e784939586a516c6267516942374d47",
+                type_=sa.String,
+            ),
+            sa.bindparam(
+                "password_changed_at", value=now, type_=sa.DateTime(timezone=True)
+            ),
             sa.bindparam("created_by", value=None, type_=sa.UUID),
-            sa.bindparam("email_verified_at", value=now, type_=sa.DateTime(timezone=True)),
+            sa.bindparam(
+                "email_verified_at", value=now, type_=sa.DateTime(timezone=True)
+            ),
             sa.bindparam("created_at", value=now, type_=sa.DateTime(timezone=True)),
         )
     )
@@ -71,11 +78,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Remove root user and role."""
     # Удаляем пользователя root
-    op.execute(
-        sa.text("DELETE FROM users WHERE email = 'root@svoifilm.com'")
-    )
+    op.execute(sa.text("DELETE FROM users WHERE email = 'root@svoifilm.com'"))
 
     # Удаляем роль root
-    op.execute(
-        sa.text("DELETE FROM roles WHERE name = 'root'")
-    )
+    op.execute(sa.text("DELETE FROM roles WHERE name = 'root'"))

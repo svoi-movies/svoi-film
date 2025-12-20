@@ -5,6 +5,7 @@ Revises: 026_add_root_user
 Create Date: 2025-12-20
 
 """
+
 from typing import Sequence, Union
 import uuid
 
@@ -13,8 +14,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '027_add_default_roles'
-down_revision: Union[str, Sequence[str], None] = '71ffc064e2e9'
+revision: str = "027_add_default_roles"
+down_revision: Union[str, Sequence[str], None] = "71ffc064e2e9"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -36,9 +37,7 @@ def upgrade() -> None:
             INSERT INTO roles (id, name, allow_self_registration, creator_role_id)
             VALUES (:role_id, 'viewer', true, NULL)
             """
-        ).bindparams(
-            sa.bindparam("role_id", value=viewer_role_id, type_=sa.UUID)
-        )
+        ).bindparams(sa.bindparam("role_id", value=viewer_role_id, type_=sa.UUID))
     )
 
     # Создаем роль admin (создается root'ом)
@@ -51,7 +50,7 @@ def upgrade() -> None:
             """
         ).bindparams(
             sa.bindparam("role_id", value=admin_role_id, type_=sa.UUID),
-            sa.bindparam("creator_role_id", value=root_role_id, type_=sa.UUID)
+            sa.bindparam("creator_role_id", value=root_role_id, type_=sa.UUID),
         )
     )
 
@@ -65,7 +64,7 @@ def upgrade() -> None:
             """
         ).bindparams(
             sa.bindparam("role_id", value=moderator_role_id, type_=sa.UUID),
-            sa.bindparam("creator_role_id", value=admin_role_id, type_=sa.UUID)
+            sa.bindparam("creator_role_id", value=admin_role_id, type_=sa.UUID),
         )
     )
 
@@ -79,7 +78,7 @@ def upgrade() -> None:
             """
         ).bindparams(
             sa.bindparam("role_id", value=content_owner_role_id, type_=sa.UUID),
-            sa.bindparam("creator_role_id", value=admin_role_id, type_=sa.UUID)
+            sa.bindparam("creator_role_id", value=admin_role_id, type_=sa.UUID),
         )
     )
 

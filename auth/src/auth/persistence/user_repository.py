@@ -10,7 +10,6 @@ from auth.use_cases.interfaces import UserRepository
 
 
 class SqlAlchemyUserRepository(UserRepository):
-
     def __init__(self, session: AsyncSession) -> None:
         super().__init__()
         self.__session = session
