@@ -36,11 +36,14 @@
 - `YC_SA_ID` - ID сервисного аккаунта для контейнера
 
 ### Application Environment
-- `ENV_POSTGRES_URL` - URL подключения к PostgreSQL
-- `ENV_AMQP_URL` - URL подключения к RabbitMQ
-- `ENV_JWT_SECRET` - Секретный ключ для JWT
-- `ENV_JWT_ALGORITHM` - Алгоритм JWT (например, HS256)
-- `ENV_JWT_EXPIRE_MINUTES` - Время жизни токена в минутах
+- `ENV_POSTGRES_URL` - URL подключения к PostgreSQL (например: `postgresql+asyncpg://user:pass@host:5432/db`)
+- `ENV_AMQP_URL` - URL подключения к RabbitMQ (например: `amqp://user:pass@host:5672`)
+- `ENV_AUTH_TOKEN_URL` - URL для получения токена (например: `https://auth-service.example.com/auth/login`)
+- `ENV_AUTH_REFRESH_URL` - URL для обновления токена (например: `https://auth-service.example.com/auth/refresh`)
+- `ENV_JWT_ACCESS_KEY_TTL` - Время жизни access токена в формате ISO 8601 (например: `PT5M` = 5 минут)
+- `ENV_JWT_REFRESH_TOKEN_TTL` - Время жизни refresh токена в формате ISO 8601 (например: `P7D` = 7 дней)
+- `ENV_JWT_SIGNING_KEY` - Приватный RSA ключ для подписи JWT (в формате PEM, многострочный - используйте кавычки)
+- `ENV_JWT_VERIFYING_KEY` - Публичный RSA ключ для проверки JWT (в формате PEM, многострочный - используйте кавычки)
 
 ## Триггеры запуска
 
@@ -71,6 +74,24 @@ yc iam key create \
 
 # Содержимое key.json использовать как YC_KEYS
 ```
+
+## Генерация JWT ключей
+
+Для работы сервиса необходимо сгенерировать пару RSA ключей:
+
+```bash
+# Генерация приватного ключа (signing key)
+openssl genrsa -out signing_key.pem 2048
+
+# Генерация публичного ключа (verifying key)
+openssl rsa -in signing_key.pem -pubout -out verifying_key.pem
+
+# Для использования в GitHub Secrets нужно скопировать содержимое файлов
+cat signing_key.pem    # Скопировать в ENV_JWT_SIGNING_KEY
+cat verifying_key.pem  # Скопировать в ENV_JWT_VERIFYING_KEY
+```
+
+**Важно**: При добавлении многострочных ключей в GitHub Secrets вставляйте их как есть, включая заголовки `-----BEGIN RSA PRIVATE KEY-----` и `-----END RSA PRIVATE KEY-----`.
 
 ## Локальное тестирование
 

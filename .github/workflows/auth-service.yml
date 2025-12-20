@@ -26,6 +26,14 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
 
+    env:
+      # Test environment variables from tests/.env
+      APP_SECRET_DIR_PATH: ./auth/tests/secrets
+      APP_AUTH__TOKEN_URL: http://localhost:8000/auth/login
+      APP_AUTH__REFRESH_URL: http://localhost:8000/auth/refresh
+      APP_DB__EXPIRE_ON_COMMIT: false
+      APP_JWT__ACCESS_KEY_TTL: PT5M
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,6 +57,14 @@ jobs:
           key: ${{ runner.os }}-uv-${{ hashFiles('auth/uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
+
+      - name: Setup test secrets
+        working-directory: ./auth
+        run: |
+          mkdir -p tests/secrets/jwt
+          # Generate test JWT keys
+          openssl genrsa -out tests/secrets/jwt/signing_key 2048
+          openssl rsa -in tests/secrets/jwt/signing_key -pubout -out tests/secrets/jwt/verifying_key
 
       - name: Install dependencies
         working-directory: ./auth
@@ -147,11 +163,15 @@ jobs:
           revision-concurrency: 4
           revision-execution-timeout: 30s
           revision-env: |
-            POSTGRES_URL=${{ secrets.ENV_POSTGRES_URL }}
-            AMQP_URL=${{ secrets.ENV_AMQP_URL }}
-            JWT_SECRET=${{ secrets.ENV_JWT_SECRET }}
-            JWT_ALGORITHM=${{ secrets.ENV_JWT_ALGORITHM }}
-            JWT_EXPIRE_MINUTES=${{ secrets.ENV_JWT_EXPIRE_MINUTES }}
+            APP_DB__DSN=${{ secrets.ENV_POSTGRES_URL }}
+            APP_RABBIT__DSN=${{ secrets.ENV_AMQP_URL }}
+            APP_AUTH__TOKEN_URL=${{ secrets.ENV_AUTH_TOKEN_URL }}
+            APP_AUTH__REFRESH_URL=${{ secrets.ENV_AUTH_REFRESH_URL }}
+            APP_JWT__ACCESS_KEY_TTL=${{ secrets.ENV_JWT_ACCESS_KEY_TTL }}
+            APP_JWT__SIGNING_KEY=${{ secrets.ENV_JWT_SIGNING_KEY }}
+            APP_JWT__VERIFYING_KEY=${{ secrets.ENV_JWT_VERIFYING_KEY }}
+            APP_JWT__REFRESH_TOKEN_TTL=${{ secrets.ENV_JWT_REFRESH_TOKEN_TTL }}
+            APP_DB__EXPIRE_ON_COMMIT=false
 
       - name: Deployment summary
         run: |
