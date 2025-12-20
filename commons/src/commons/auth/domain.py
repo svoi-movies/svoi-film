@@ -8,7 +8,7 @@ from pydantic import BaseModel, EmailStr, Field
 class Role(Enum):
     MODERATOR = "moderator"
     VIEWER = "viewer"
-    CONTENT_OWNER = "content_owner"
+    CONTENT_OWNER = "content-owner"
     ADMIN = "admin"
     ROOT = "root"
 

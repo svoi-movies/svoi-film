@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run uvicorn",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "--reload",
+                "--factory",
+                "--workers",
+                "1",
+                "auth.api:create_app",
+            ],
+            "envFile": "${workspaceFolder}/.dev/.env",
+            "jinja": false,
+            "justMyCode": false
+        }
+    ]
+}
