@@ -1,0 +1,65 @@
+services:
+  moderator:
+    image: local/moderator:latest
+    build:
+      context: ".."
+      dockerfile: "moderator/Dockerfile"
+    restart: no
+    command: ["python", "-m", "uvicorn", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--factory", "moderator.api:create_app"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8001/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+    env_file:
+      - .dev/.env
+    environment:
+      - APP_DB__DSN=postgresql+asyncpg://moderator:moderator@moderator-db:5432/moderator
+      - APP_DB__EXPIRE_ON_COMMIT=false
+      - APP_RABBIT__DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672/
+      - APP_AUTH__TOKEN_URL=http://localhost:8001/auth/login
+      - APP_AUTH__REFRESH_URL=http://localhost:8001/auth/refresh
+      - APP_AUTH_CLIENT__BASE_URL=http://auth:8001
+    volumes:
+      - .dev/secrets:/var/run/secrets
+    depends_on:
+      - moderator-db
+    networks:
+      - microservices
+
+  moderator-outbox-worker:
+    image: local/moderator:latest
+    build:
+      context: ".."
+      dockerfile: "moderator/Dockerfile"
+    command: python -m commons.outbox.worker
+    restart: unless-stopped
+    environment:
+      - OUTBOX_POSTGRES_DSN=postgresql://moderator:moderator@moderator-db:5432/moderator
+      - OUTBOX_RABBITMQ_DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672/
+      - APP_RABBIT__DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672/
+    depends_on:
+      - moderator-db
+    networks:
+      - microservices
+
+  moderator-db:
+    image: postgres:17.4
+    environment:
+      - "POSTGRES_USER=moderator"
+      - "POSTGRES_PASSWORD=moderator"
+      - "POSTGRES_DB=moderator"
+    ports:
+      - 35432:5432
+    volumes:
+      - moderator-pgdata:/var/lib/postgresql
+    networks:
+      - microservices
+
+volumes:
+  moderator-pgdata:
+
+networks:
+  microservices:
+    name: microservices
