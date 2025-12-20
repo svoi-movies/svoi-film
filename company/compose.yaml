@@ -1,0 +1,65 @@
+services:
+  company:
+    image: local/company:latest
+    build:
+      context: ".."
+      dockerfile: "company/Dockerfile"
+    restart: no
+    command: ["python", "-m", "uvicorn", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--factory", "company.api:create_app"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8001/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+    env_file:
+      - .dev/.env
+    environment:
+      - APP_DB__DSN=postgresql+asyncpg://company:company@company-db:5432/company
+      - APP_DB__EXPIRE_ON_COMMIT=false
+      - APP_RABBIT__DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672/
+      - APP_AUTH__TOKEN_URL=http://localhost:8001/auth/login
+      - APP_AUTH__REFRESH_URL=http://localhost:8001/auth/refresh
+      - APP_AUTH_CLIENT__BASE_URL=http://auth:8001
+    volumes:
+      - .dev/secrets:/var/run/secrets
+    depends_on:
+      - company-db
+    networks:
+      - microservices
+
+  company-outbox-worker:
+    image: local/company:latest
+    build:
+      context: ".."
+      dockerfile: "company/Dockerfile"
+    command: python -m commons.outbox.worker
+    restart: unless-stopped
+    environment:
+      - OUTBOX_POSTGRES_DSN=postgresql://company:company@company-db:5432/company
+      - OUTBOX_RABBITMQ_DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672/
+      - APP_RABBIT__DSN=amqp://rabbitmq:rabbitmq@rabbitmq:5672/
+    depends_on:
+      - company-db
+    networks:
+      - microservices
+
+  company-db:
+    image: postgres:17.4
+    environment:
+      - "POSTGRES_USER=company"
+      - "POSTGRES_PASSWORD=company"
+      - "POSTGRES_DB=company"
+    ports:
+      - 35432:5432
+    volumes:
+      - company-pgdata:/var/lib/postgresql
+    networks:
+      - microservices
+
+volumes:
+  company-pgdata:
+
+networks:
+  microservices:
+    name: microservices
