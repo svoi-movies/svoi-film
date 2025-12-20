@@ -6,15 +6,15 @@ on:
       - main
       - subscribes-service
     paths:
-      - 'auth/**'
-      - 'commons/**'
-      - '.github/workflows/auth-service.yml'
+      - "auth/**"
+      - "commons/**"
+      - ".github/workflows/auth-service.yml"
   pull_request:
     branches:
       - main
     paths:
-      - 'auth/**'
-      - 'commons/**'
+      - "auth/**"
+      - "commons/**"
 
 env:
   REGISTRY: cr.yandex
@@ -41,7 +41,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -132,15 +132,9 @@ jobs:
           build-args: |
             MCS_NAME=${{ env.MCS_NAME }}
           tags: |
-            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.SERVICE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.SERVICE_NAME }}:${{ steps.meta.outputs.sha_short }}
-            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.SERVICE_NAME }}:${{ steps.meta.outputs.date }}
+            cr.yandex/${{ env.REGISTRY }}/svoi-film-auth-service:latest:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Image digest
-        run: echo "Image pushed with tags latest, ${{ steps.meta.outputs.sha_short }}, ${{ steps.meta.outputs.date }}"
-
   deploy:
     name: Deploy to Serverless Containers
     runs-on: ubuntu-latest
@@ -153,9 +147,9 @@ jobs:
         uses: yc-actions/yc-sls-container-deploy@v2
         with:
           yc-sa-json-credentials: ${{ secrets.YC_KEYS }}
-          container-name: ${{ secrets.YC_CONTAINER_NAME }}
+          container-name: svoi-film-auth-service
           folder-id: ${{ secrets.YC_FOLDER_ID }}
-          revision-image-url: ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.SERVICE_NAME }}:latest
+          revision-image-url: cr.yandex/${{ secrets.REGISTRY }}/svoi-film-auth-service:latest
           revision-service-account-id: ${{ secrets.YC_SA_ID }}
           revision-cores: 1
           revision-memory: 512Mb
@@ -163,18 +157,12 @@ jobs:
           revision-concurrency: 4
           revision-execution-timeout: 30s
           revision-env: |
-            APP_DB__DSN=${{ secrets.ENV_POSTGRES_URL }}
+            APP_DB__DSN=postgresql+asyncpg://test:test@test:5432/test
             APP_RABBIT__DSN=${{ secrets.ENV_AMQP_URL }}
-            APP_AUTH__TOKEN_URL=${{ secrets.ENV_AUTH_TOKEN_URL }}
-            APP_AUTH__REFRESH_URL=${{ secrets.ENV_AUTH_REFRESH_URL }}
-            APP_JWT__ACCESS_KEY_TTL=${{ secrets.ENV_JWT_ACCESS_KEY_TTL }}
-            APP_JWT__SIGNING_KEY=${{ secrets.ENV_JWT_SIGNING_KEY }}
-            APP_JWT__VERIFYING_KEY=${{ secrets.ENV_JWT_VERIFYING_KEY }}
-            APP_JWT__REFRESH_TOKEN_TTL=${{ secrets.ENV_JWT_REFRESH_TOKEN_TTL }}
+            APP_AUTH__TOKEN_URL=http://localhost:8000
+            APP_AUTH__REFRESH_URL=http://localhost:8000
+            APP_JWT__ACCESS_KEY_TTL=10
+            APP_JWT__SIGNING_KEY=asdlkjsad
+            APP_JWT__VERIFYING_KEY=asdlkasjd
+            APP_JWT__REFRESH_TOKEN_TTL=10
             APP_DB__EXPIRE_ON_COMMIT=false
-
-      - name: Deployment summary
-        run: |
-          echo "✅ Deployment completed successfully!"
-          echo "Service: ${{ env.SERVICE_NAME }}"
-          echo "Container: ${{ secrets.YC_CONTAINER_NAME }}"
