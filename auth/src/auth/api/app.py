@@ -9,6 +9,7 @@ from dishka import AsyncContainer
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client.registry import CollectorRegistry
 from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -16,20 +17,19 @@ from auth.config import Config
 from auth.container import create_container
 from auth.persistence.schema import wire_mappers
 
-instrumentator = Instrumentator(
-    should_group_status_codes=False,
-    should_ignore_untemplated=True,
-    should_respect_env_var=False,
-    should_instrument_requests_inprogress=True,
-    excluded_handlers=["/metrics"],
-    inprogress_name="inprogress",
-    inprogress_labels=True,
-)
-
 logger = logging.getLogger(__name__)
 
 
 def create_base_app() -> FastAPI:
+    instrumentator = Instrumentator(
+        registry=CollectorRegistry(auto_describe=True),
+        should_group_status_codes=False,
+        should_ignore_untemplated=True,
+        should_respect_env_var=False,
+        should_instrument_requests_inprogress=False,
+        excluded_handlers=["/metrics"],
+    )
+
     from .routes import router
 
     app = FastAPI(lifespan=lifespan)

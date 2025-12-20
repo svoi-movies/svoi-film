@@ -8,9 +8,11 @@ import sqlalchemy as sa
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from testcontainers.core.wait_strategies import HealthcheckWaitStrategy
 from testcontainers.postgres import PostgresContainer
 
-from auth.persistence.schema import mapper_registry
+from auth.domain.value_objects import Email
+from auth.persistence.schema import mapper_registry, roles, sessions, users
 
 db_container = PostgresContainer(image="postgres:17.4")
 
@@ -18,6 +20,8 @@ db_container = PostgresContainer(image="postgres:17.4")
 @pytest.fixture(scope="module", autouse=True)
 def setup(request) -> Generator[None]:
     db_container.start()
+
+    db_container.waiting_for(HealthcheckWaitStrategy())
 
     def remove_container():
         db_container.stop()
@@ -30,10 +34,10 @@ def setup(request) -> Generator[None]:
         "APP_DB_DSN": db_url,
         "APP_DOTENV_FILE_PATH": ".dev/secrets",
         "APP_SECRET_DIR_PATH": "./.dev/secrets",
+        "APP_RABBIT__DSN": "amqp://test:test@test:5672/",
     }
 
     with mock.patch.dict(os.environ, overrides):
-        print(os.environ.get("APP_DB__DSN"))
         yield
 
 
@@ -56,15 +60,31 @@ def engine() -> AsyncEngine:
 @pytest_asyncio.fixture(scope="function")
 async def clean_tables(migrate, engine: AsyncEngine) -> None:
     async with engine.connect() as conn:
-        for _, table in mapper_registry.metadata.tables.items():
-            await conn.execute(sa.delete(table).where(sa.true()))
+        await conn.execute(sa.delete(sessions).where(sa.true()))
+        await conn.execute(
+            sa.delete(users).where(users.c.email != Email("root@svoifilm.com"))
+        )
+        await conn.execute(
+            sa.delete(roles).where(
+                roles.c.name.not_in(
+                    [
+                        "root",
+                        "admin",
+                        "viewer",
+                        "content-owner",
+                    ]
+                )
+            )
+        )
 
 
 @pytest.fixture(scope="function")
-def app() -> FastAPI:
+def app() -> Generator[FastAPI]:
     from auth.api import create_app
 
-    return create_app()
+    yield create_app()
+
+    mapper_registry.dispose(cascade=True)
 
 
 @pytest.fixture(scope="function")

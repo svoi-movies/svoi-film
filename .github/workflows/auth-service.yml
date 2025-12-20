@@ -1,0 +1,160 @@
+name: Auth Service CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - subscribes-service
+    paths:
+      - 'auth/**'
+      - 'commons/**'
+      - '.github/workflows/auth-service.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'auth/**'
+      - 'commons/**'
+
+env:
+  REGISTRY: cr.yandex
+  SERVICE_NAME: auth-service
+  MCS_NAME: auth
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.9.17"
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            auth/.venv
+          key: ${{ runner.os }}-uv-${{ hashFiles('auth/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Install dependencies
+        working-directory: ./auth
+        run: |
+          uv sync --group tests --group dev
+
+      - name: Run linter (ruff)
+        working-directory: ./auth
+        run: |
+          uv run ruff check src/ tests/
+
+      - name: Run formatter check (ruff)
+        working-directory: ./auth
+        run: |
+          uv run ruff format --check src/ tests/
+
+      - name: Run type checker (mypy)
+        working-directory: ./auth
+        run: |
+          uv run mypy src/
+        continue-on-error: true
+
+      - name: Run unit tests
+        working-directory: ./auth
+        run: |
+          uv run pytest tests/unit -v --tb=short
+
+      - name: Run integration tests
+        working-directory: ./auth
+        run: |
+          uv run pytest tests/integrations -v --tb=short
+
+  build-and-push-to-yc:
+    name: Build and Push to YC
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/subscribes-service')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to YC Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: json_key
+          password: ${{ secrets.YC_KEYS }}
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./auth/Dockerfile
+          push: true
+          build-args: |
+            MCS_NAME=${{ env.MCS_NAME }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.SERVICE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.SERVICE_NAME }}:${{ steps.meta.outputs.sha_short }}
+            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.SERVICE_NAME }}:${{ steps.meta.outputs.date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image digest
+        run: echo "Image pushed with tags latest, ${{ steps.meta.outputs.sha_short }}, ${{ steps.meta.outputs.date }}"
+
+  deploy:
+    name: Deploy to Serverless Containers
+    runs-on: ubuntu-latest
+    needs: [build-and-push-to-yc]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy serverless container
+        id: deploy
+        uses: yc-actions/yc-sls-container-deploy@v2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_KEYS }}
+          container-name: ${{ secrets.YC_CONTAINER_NAME }}
+          folder-id: ${{ secrets.YC_FOLDER_ID }}
+          revision-image-url: ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.SERVICE_NAME }}:latest
+          revision-service-account-id: ${{ secrets.YC_SA_ID }}
+          revision-cores: 1
+          revision-memory: 512Mb
+          revision-core-fraction: 100
+          revision-concurrency: 4
+          revision-execution-timeout: 30s
+          revision-env: |
+            POSTGRES_URL=${{ secrets.ENV_POSTGRES_URL }}
+            AMQP_URL=${{ secrets.ENV_AMQP_URL }}
+            JWT_SECRET=${{ secrets.ENV_JWT_SECRET }}
+            JWT_ALGORITHM=${{ secrets.ENV_JWT_ALGORITHM }}
+            JWT_EXPIRE_MINUTES=${{ secrets.ENV_JWT_EXPIRE_MINUTES }}
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "Service: ${{ env.SERVICE_NAME }}"
+          echo "Container: ${{ secrets.YC_CONTAINER_NAME }}"
