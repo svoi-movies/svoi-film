@@ -132,7 +132,7 @@ jobs:
           build-args: |
             MCS_NAME=${{ env.MCS_NAME }}
           tags: |
-            cr.yandex/${{ env.REGISTRY }}/svoi-film-auth-service:latest:latest
+            ${{ env.REGISTRY }}/svoi-film-auth-service:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
   deploy:
